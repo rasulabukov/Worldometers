@@ -1,24 +1,34 @@
 package com.example.worldometers
 
-import org.jsoup.Jsoup
-import javax.inject.Inject
+import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.URL
 
-
-class PopulationRepository @Inject constructor() {
+class PopulationRepository {
+    companion object {
+        private const val TAG = "PopulationRepository"
+        private const val TEST_API_URL = "https://jsonplaceholder.typicode.com/todos/1"
+    }
 
     suspend fun fetchPopulationData(): PopulationData {
         return try {
-            // Подключаемся к сайту и получаем HTML
-            val doc = Jsoup.connect("https://www.worldometers.info/world-population/").get()
+            Log.d(TAG, "Fetching test data from $TEST_API_URL")
 
-            // Парсим данные о населении
-            val populationElement = doc.select("div.maincounter-number span").first()
-            val population = populationElement?.text() ?: "N/A"
+            val jsonStr = withContext(Dispatchers.IO) {
+                URL(TEST_API_URL).readText()
+            }
 
-            PopulationData(worldPopulation = population)
+            val json = JSONObject(jsonStr)
+            val title = json.optString("title", "No title")
+            val id = json.optInt("id", -1)
+
+            Log.d(TAG, "Successfully fetched test data: $title (ID: $id)")
+            PopulationData(worldPopulation = "ID: $id, Title: $title")
         } catch (e: Exception) {
-            e.printStackTrace()
-            PopulationData(worldPopulation = "Error fetching data")
+            Log.e(TAG, "Error fetching test data", e)
+            PopulationData(worldPopulation = "Error: ${e.message}")
         }
     }
 }

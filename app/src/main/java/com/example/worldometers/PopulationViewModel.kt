@@ -1,18 +1,20 @@
 package com.example.worldometers
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.withContext
 
-@HiltViewModel
-class PopulationViewModel @Inject constructor(
-    private val repository: PopulationRepository
-) : ViewModel() {
+class PopulationViewModel : ViewModel() {
+    companion object {
+        private const val TAG = "PopulationViewModel"
+    }
 
+    private val repository = PopulationRepository()
     private val _populationData = MutableLiveData<PopulationData>()
     val populationData: LiveData<PopulationData> get() = _populationData
 
@@ -22,8 +24,18 @@ class PopulationViewModel @Inject constructor(
 
     private fun fetchPopulation() {
         viewModelScope.launch {
-            val data = repository.fetchPopulationData()
-            _populationData.value = data
+            try {
+                _populationData.value = PopulationData("Loading...")
+
+                val result = withContext(Dispatchers.IO) {
+                    repository.fetchPopulationData()
+                }
+
+                _populationData.value = result
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in ViewModel", e)
+                _populationData.value = PopulationData("Error: ${e.message}")
+            }
         }
     }
 }
